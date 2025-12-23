@@ -137,6 +137,20 @@ const Dashboard = () => {
         </div>
       )}
 
+      {/* Global Loading Indicator */}
+      {loading && (
+        <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      )}
+
+      {/* Success Message */}
+      {!loading && dashboardData.length > 0 && (
+        <div className="bg-green-50 text-green-700 p-4 rounded-lg border border-green-200">
+          Dados carregados com sucesso!
+        </div>
+      )}
+
       {/* Tabela de Resultados */}
       <div className="bg-white rounded-xl shadow overflow-hidden border border-gray-100">
         <div className="overflow-x-auto">
