@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { Calendar, Download, AlertCircle, Wallet } from 'lucide-react';
-import { useFilters } from '../context/FilterContext'; // <--- IMPORTAR
+import { useFilters } from '../context/FilterContext';
 
 const Pagamento = () => {
-  const { filters, setFilters, updateCache, getCachedData } = useFilters(); // <--- USAR
+  const { filters, setFilters, updateCache, getCachedData } = useFilters();
   const [data, setData] = useState({ motoristas: [], ajudantes: [] });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -38,7 +38,7 @@ const Pagamento = () => {
             ajudantes: response.data.ajudantes || []
         };
         setData(result);
-        updateCache('pagamento', result); // Salva Cache
+        updateCache('pagamento', result);
       }
     } catch (err) {
       console.error(err);
@@ -51,7 +51,7 @@ const Pagamento = () => {
   useEffect(() => {
     fetchPagamento();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters]); // Recarrega se filtros globais mudarem
+  }, [filters]);
 
   const handleDateChange = (field, value) => {
       setFilters(prev => ({ ...prev, [field]: value }));
@@ -182,9 +182,13 @@ const Pagamento = () => {
                 <>
                     {listaAtual.map((row, index) => (
                     <tr key={index} className="hover:bg-gray-50 transition-colors">
+                        {/* --- COLUNA COLABORADOR ATUALIZADA COM COD --- */}
                         <td className="py-3 px-4">
                             <div className="font-medium text-gray-800">{row.nome || `COD ${row.cod}`}</div>
-                            <div className="text-xs text-gray-400">CPF: {row.cpf || '-'}</div>
+                            <div className="flex gap-3 text-xs text-gray-500 mt-0.5">
+                                {row.cod && <span className="bg-gray-100 px-1.5 rounded border border-gray-200">COD: {row.cod}</span>}
+                                {row.cpf && <span>CPF: {row.cpf}</span>}
+                            </div>
                         </td>
                         <td className="py-3 px-4 text-right text-gray-600">
                             {formatMoney(row.premio_caixas)}
