@@ -14,4 +14,20 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Interceptor: Tratamento de erros (ex: 401 - Token Expirado)
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      // Token expirou ou inválido
+      localStorage.removeItem('access_token');
+      // Redireciona para login se não estiver lá
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default api;

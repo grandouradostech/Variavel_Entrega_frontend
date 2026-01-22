@@ -1,4 +1,5 @@
 import { createContext, useState, useContext } from 'react';
+import api from '../services/api';
 
 const FilterContext = createContext();
 
@@ -38,8 +39,23 @@ export const FilterProvider = ({ children }) => {
     return null;
   };
 
+  // Função para limpar cache local e remoto
+  const refreshApp = async () => {
+    // 1. Limpa cache local
+    setCache({});
+    console.log("Cache Frontend limpo.");
+
+    // 2. Chama endpoint para limpar cache do backend
+    try {
+        await api.post('/refresh');
+        console.log("Cache Backend limpo.");
+    } catch (error) {
+        console.error("Erro ao limpar cache do backend:", error);
+    }
+  };
+
   return (
-    <FilterContext.Provider value={{ filters, setFilters, updateCache, getCachedData }}>
+    <FilterContext.Provider value={{ filters, setFilters, updateCache, getCachedData, refreshApp }}>
       {children}
     </FilterContext.Provider>
   );

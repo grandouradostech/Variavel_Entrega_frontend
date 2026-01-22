@@ -1,20 +1,22 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { Search, Calendar, Filter } from 'lucide-react';
+import { useFilters } from '../context/FilterContext';
 
 const Dashboard = () => {
+  const { filters, setFilters, updateCache, getCachedData } = useFilters();
   const [dashboardData, setDashboardData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [validationError, setValidationError] = useState(''); // Validation error state
 
-  // Estados para filtros
-  const [dataInicio, setDataInicio] = useState('');
-  const [dataFim, setDataFim] = useState('');
+  // Estado local apenas para busca textual
   const [search, setSearch] = useState('');
 
   // Carregar dados ao iniciar ou mudar filtros
   const fetchXadrez = async () => {
+    const { start: dataInicio, end: dataFim } = filters;
+
     if (dataInicio && dataFim && new Date(dataInicio) > new Date(dataFim)) {
       setValidationError('A data de início não pode ser maior que a data de fim.');
       return;
@@ -23,6 +25,17 @@ const Dashboard = () => {
     setValidationError(''); // Clear validation error
     setLoading(true);
     setError('');
+
+    // Tenta obter do cache se não houver busca textual
+    if (!search) {
+      const cached = getCachedData('dashboard');
+      if (cached) {
+        setDashboardData(cached);
+        setLoading(false);
+        return;
+      }
+    }
+
     try {
       // Monta a query string
       const params = new URLSearchParams();
@@ -36,11 +49,21 @@ const Dashboard = () => {
       if (response.data.error) {
         setError(response.data.error);
       } else {
-        setDashboardData(response.data.dashboard || []);
+        const data = response.data.dashboard || [];
+        setDashboardData(data);
         
-        // Atualiza datas se vierem do backend (opcional)
-        if (!dataInicio && response.data.data_inicio) setDataInicio(response.data.data_inicio);
-        if (!dataFim && response.data.data_fim) setDataFim(response.data.data_fim);
+        // Atualiza cache se não houver busca
+        if (!search) {
+          updateCache('dashboard', data);
+        }
+        
+        // Atualiza datas se vierem do backend (apenas se vazias)
+        if (!dataInicio && response.data.data_inicio) {
+             setFilters(prev => ({ ...prev, start: response.data.data_inicio }));
+        }
+        if (!dataFim && response.data.data_fim) {
+             setFilters(prev => ({ ...prev, end: response.data.data_fim }));
+        }
       }
     } catch (err) {
       console.error(err);
@@ -78,8 +101,8 @@ const Dashboard = () => {
                         id="dataInicio"
                         type="date" 
                         className="pl-8 pr-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                        value={dataInicio}
-                        onChange={(e) => setDataInicio(e.target.value)}
+                        value={filters.start}
+                        onChange={(e) => setFilters(prev => ({ ...prev, start: e.target.value }))}
                         aria-label="Data de início"
                     />
                 </div>
@@ -92,8 +115,8 @@ const Dashboard = () => {
                         id="dataFim"
                         type="date" 
                         className="pl-8 pr-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                        value={dataFim}
-                        onChange={(e) => setDataFim(e.target.value)}
+                        value={filters.end}
+                        onChange={(e) => setFilters(prev => ({ ...prev, end: e.target.value }))}
                         aria-label="Data de fim"
                     />
                 </div>
@@ -151,8 +174,8 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* Tabela de Resultados */}
-      <div className="bg-white rounded-xl shadow overflow-hidden border border-gray-100">
+      {/* Tabela de Resultados (Desktop) */}
+      <div className="bg-white rounded-xl shadow overflow-hidden border border-gray-100 hidden md:block">
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
             <thead className="bg-gray-50 text-gray-600 font-medium border-b">
@@ -211,6 +234,55 @@ const Dashboard = () => {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Card View (Mobile) */}
+      <div className="md:hidden space-y-4">
+        {loading ? (
+          <div className="text-center text-gray-500 py-8">Carregando dados...</div>
+        ) : dashboardData.length === 0 ? (
+          <div className="text-center text-gray-500 py-8">Nenhum registro encontrado.</div>
+        ) : (
+          dashboardData.map((row, index) => (
+            <div key={index} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 space-y-3">
+              <div className="flex justify-between items-start border-b border-gray-100 pb-2">
+                <div>
+                  <span className="text-xs text-gray-500 uppercase font-semibold">Motorista Principal</span>
+                  <div className="font-bold text-gray-800">{row.MOTORISTA}</div>
+                </div>
+                {row.MOTORISTA_2 && (
+                  <div className="text-right">
+                    <span className="text-xs text-gray-500 uppercase font-semibold">Motorista 2</span>
+                    <div className="text-gray-700">{row.MOTORISTA_2}</div>
+                  </div>
+                )}
+              </div>
+              
+              <div className="space-y-2">
+                <span className="text-xs text-blue-600 uppercase font-semibold block">Ajudantes Fixos</span>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  {row.AJUDANTE_1 && <div className="bg-blue-50 text-blue-800 px-2 py-1 rounded">{row.AJUDANTE_1}</div>}
+                  {row.AJUDANTE_2 && <div className="bg-blue-50 text-blue-800 px-2 py-1 rounded">{row.AJUDANTE_2}</div>}
+                  {row.AJUDANTE_3 && <div className="bg-blue-50 text-blue-800 px-2 py-1 rounded">{row.AJUDANTE_3}</div>}
+                  {!row.AJUDANTE_1 && !row.AJUDANTE_2 && !row.AJUDANTE_3 && <span className="text-gray-400 italic">Nenhum fixo</span>}
+                </div>
+              </div>
+
+              {row.VISITANTES && row.VISITANTES.length > 0 && (
+                <div className="pt-2 border-t border-gray-100">
+                  <span className="text-xs text-gray-500 uppercase font-semibold block mb-1">Visitantes</span>
+                  <div className="flex flex-wrap gap-1">
+                    {row.VISITANTES.map((v, i) => (
+                      <span key={i} className="bg-gray-100 px-2 py-1 rounded text-xs text-gray-600 border border-gray-200">
+                        {v}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))
+        )}
       </div>
     </div>
   );

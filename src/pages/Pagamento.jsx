@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
-import { Calendar, Download, AlertCircle, Wallet } from 'lucide-react';
+import { Calendar, Download, AlertCircle, Wallet, Search } from 'lucide-react';
 import { useFilters } from '../context/FilterContext';
 
 const Pagamento = () => {
@@ -9,6 +9,7 @@ const Pagamento = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('motoristas');
+  const [search, setSearch] = useState(''); // Busca local
 
   // Carregar dados
   const fetchPagamento = async (force = false) => {
@@ -74,59 +75,85 @@ const Pagamento = () => {
   };
 
   const listaAtual = activeTab === 'motoristas' ? data.motoristas : data.ajudantes;
-  const totalGeral = listaAtual.reduce((acc, item) => acc + (parseFloat(item.total_a_pagar) || 0), 0);
+
+  // Filtragem local
+  const filteredList = listaAtual.filter(item => {
+    if (!search) return true;
+    const term = search.toLowerCase();
+    return (
+      (item.nome && item.nome.toLowerCase().includes(term)) ||
+      (item.cpf && item.cpf.includes(term)) ||
+      (item.cod && String(item.cod).includes(term))
+    );
+  });
+
+  const totalGeral = filteredList.reduce((acc, item) => acc + (parseFloat(item.total_a_pagar) || 0), 0);
 
   return (
     <div className="space-y-6">
       {/* Cabeçalho */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-            <Wallet className="text-green-600" />
-            Resumo de Pagamento
-          </h1>
-          <p className="text-gray-500 text-sm">Consolidado de Produção (Caixas) + Qualidade (KPIs)</p>
+      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col gap-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+              <Wallet className="text-green-600" />
+              Resumo de Pagamento
+            </h1>
+            <p className="text-gray-500 text-sm">Consolidado de Produção (Caixas) + Qualidade (KPIs)</p>
+          </div>
+
+          <div className="flex flex-wrap gap-2 items-end">
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Início</label>
+              <div className="relative">
+                <Calendar className="absolute left-2 top-2.5 text-gray-400" size={16} />
+                <input 
+                  type="date" 
+                  className="pl-8 pr-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                  value={filters.start}
+                  onChange={(e) => handleDateChange('start', e.target.value)}
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Fim</label>
+              <div className="relative">
+                <Calendar className="absolute left-2 top-2.5 text-gray-400" size={16} />
+                <input 
+                  type="date" 
+                  className="pl-8 pr-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                  value={filters.end}
+                  onChange={(e) => handleDateChange('end', e.target.value)}
+                />
+              </div>
+            </div>
+            <button 
+              onClick={() => fetchPagamento(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium h-[38px]"
+            >
+              Calcular
+            </button>
+            <button 
+              onClick={handleExport}
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium h-[38px] flex items-center gap-2"
+              title="Baixar Excel"
+            >
+              <Download size={18} />
+              Exportar
+            </button>
+          </div>
         </div>
 
-        <div className="flex flex-wrap gap-2 items-end">
-            <div>
-                <label className="block text-xs text-gray-500 mb-1">Início</label>
-                <div className="relative">
-                    <Calendar className="absolute left-2 top-2.5 text-gray-400" size={16}/>
-                    <input 
-                        type="date" 
-                        className="pl-8 pr-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                        value={filters.start}
-                        onChange={(e) => handleDateChange('start', e.target.value)}
-                    />
-                </div>
-            </div>
-            <div>
-                <label className="block text-xs text-gray-500 mb-1">Fim</label>
-                <div className="relative">
-                    <Calendar className="absolute left-2 top-2.5 text-gray-400" size={16}/>
-                    <input 
-                        type="date" 
-                        className="pl-8 pr-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                        value={filters.end}
-                        onChange={(e) => handleDateChange('end', e.target.value)}
-                    />
-                </div>
-            </div>
-            <button 
-                onClick={() => fetchPagamento(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium h-[38px]"
-            >
-                Calcular
-            </button>
-            <button 
-                onClick={handleExport}
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium h-[38px] flex items-center gap-2"
-                title="Baixar Excel"
-            >
-                <Download size={18} />
-                Exportar
-            </button>
+        {/* Barra de Pesquisa */}
+        <div className="relative">
+          <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
+          <input
+            type="text"
+            placeholder="Buscar por nome, CPF ou código..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+          />
         </div>
       </div>
 
@@ -161,8 +188,8 @@ const Pagamento = () => {
         </div>
       )}
 
-      {/* Tabela */}
-      <div className="bg-white rounded-xl shadow overflow-hidden border border-gray-100">
+      {/* Tabela (Desktop) */}
+      <div className="bg-white rounded-xl shadow overflow-hidden border border-gray-100 hidden md:block">
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
             <thead className="bg-gray-50 text-gray-600 font-medium border-b">
@@ -176,11 +203,11 @@ const Pagamento = () => {
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr><td colSpan="4" className="py-12 text-center text-gray-500">Calculando pagamentos...</td></tr>
-              ) : listaAtual.length === 0 ? (
+              ) : filteredList.length === 0 ? (
                 <tr><td colSpan="4" className="py-12 text-center text-gray-500">Nenhum dado encontrado para o período. Clique em "Calcular".</td></tr>
               ) : (
                 <>
-                    {listaAtual.map((row, index) => (
+                    {filteredList.map((row, index) => (
                     <tr key={index} className="hover:bg-gray-50 transition-colors">
                         {/* --- COLUNA COLABORADOR ATUALIZADA COM COD --- */}
                         <td className="py-3 px-4">
@@ -215,6 +242,51 @@ const Pagamento = () => {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Card View (Mobile) */}
+      <div className="md:hidden space-y-4">
+         {loading ? (
+            <div className="text-center text-gray-500 py-8">Calculando...</div>
+         ) : filteredList.length === 0 ? (
+            <div className="text-center text-gray-500 py-8">Nenhum dado encontrado.</div>
+         ) : (
+            <>
+              {filteredList.map((row, index) => (
+                <div key={index} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 space-y-3">
+                    <div className="flex justify-between items-start border-b border-gray-100 pb-2">
+                        <div>
+                            <div className="font-bold text-gray-800">{row.nome || `COD ${row.cod}`}</div>
+                            <div className="text-xs text-gray-500 mt-0.5">
+                                {row.cod && <span>COD: {row.cod}</span>}
+                            </div>
+                        </div>
+                        <div className="text-right">
+                            <span className="text-xs text-gray-500 uppercase block">Total a Pagar</span>
+                            <span className="font-bold text-green-700 text-lg">{formatMoney(row.total_a_pagar)}</span>
+                        </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4 text-sm pt-1">
+                        <div>
+                            <span className="text-xs text-gray-500 block">Prêmio Caixas</span>
+                            <span className="font-medium text-gray-700">{formatMoney(row.premio_caixas)}</span>
+                        </div>
+                        <div className="text-right">
+                            <span className="text-xs text-gray-500 block">Prêmio KPIs</span>
+                            <span className="font-medium text-gray-700">{formatMoney(row.premio_kpi)}</span>
+                        </div>
+                    </div>
+                </div>
+              ))}
+              
+              {/* Card de Total Geral */}
+              <div className="bg-gray-100 rounded-xl p-4 border border-gray-200 flex justify-between items-center sticky bottom-4 shadow-lg">
+                  <span className="font-bold text-gray-700">TOTAL GERAL</span>
+                  <span className="font-bold text-green-800 text-xl">{formatMoney(totalGeral)}</span>
+              </div>
+            </>
+         )}
       </div>
     </div>
   );

@@ -177,8 +177,8 @@ const Incentivo = () => {
         </div>
       )}
 
-      {/* Tabela */}
-      <div className="bg-white rounded-xl shadow overflow-hidden border border-gray-100">
+      {/* Tabela (Desktop) */}
+      <div className="bg-white rounded-xl shadow overflow-hidden border border-gray-100 hidden md:block">
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
             <thead className="bg-gray-50 text-gray-600 font-medium border-b">
@@ -244,6 +244,59 @@ const Incentivo = () => {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Card View (Mobile) */}
+      <div className="md:hidden space-y-4">
+         {loading ? (
+           <div className="text-center text-gray-500 py-8">Calculando...</div>
+         ) : listaFiltrada.length === 0 ? (
+           <div className="text-center text-gray-500 py-8">Nenhum registro encontrado.</div>
+         ) : (
+           listaFiltrada.map((row, index) => (
+             <div key={index} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 space-y-3">
+               <div className="flex justify-between items-start border-b border-gray-100 pb-2">
+                 <div>
+                    <h3 className="font-bold text-gray-800">{row.nome}</h3>
+                    <div className="text-xs text-gray-500">COD: {row.cod}</div>
+                 </div>
+                 <div className="text-right">
+                    <span className="text-xs text-gray-500 uppercase block">Total KPIs</span>
+                    {renderPremio(row.total_premio)}
+                 </div>
+               </div>
+
+               <div className="space-y-3 pt-2">
+                  {/* Item KPI */}
+                  <div className="flex justify-between items-center text-sm">
+                     <span className="text-gray-600">Dev. PDV</span>
+                     <div className="flex items-center gap-3">
+                        <span className="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-600">{row.dev_pdv_val || '-'}</span>
+                        {renderPremio(row.dev_pdv_premio_val)}
+                     </div>
+                  </div>
+                  
+                  {/* Item KPI */}
+                  <div className="flex justify-between items-center text-sm">
+                     <span className="text-gray-600">Rating</span>
+                     <div className="flex items-center gap-3">
+                        <span className="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-600">{row.rating_val || '-'}</span>
+                        {renderPremio(row.rating_premio_val)}
+                     </div>
+                  </div>
+
+                  {/* Item KPI */}
+                  <div className="flex justify-between items-center text-sm">
+                     <span className="text-gray-600">Refugo</span>
+                     <div className="flex items-center gap-3">
+                        <span className="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-600">{row.refugo_val || '-'}</span>
+                        {renderPremio(row.refugo_premio_val)}
+                     </div>
+                  </div>
+               </div>
+             </div>
+           ))
+         )}
       </div>
     </div>
   );
