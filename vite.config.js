@@ -5,6 +5,47 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   resolve: {
-    dedupe: ['react', 'react-dom'], // <--- ESTA É A LINHA QUE FALTA
+    dedupe: ['react', 'react-dom'],
   },
+  server: {
+    // Esta configuração ajuda a evitar erros de CORS forçando o Vite
+    // a agir como um intermediário entre o frontend e o backend
+    proxy: {
+      '/token': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/xadrez': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/caixas': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/incentivo': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/pagamento': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/metas': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/refresh': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+        secure: false,
+      }
+    }
+  }
 })
