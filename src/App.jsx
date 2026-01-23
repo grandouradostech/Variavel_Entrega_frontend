@@ -11,6 +11,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Incentivo = lazy(() => import('./pages/Incentivo'));
 const Pagamento = lazy(() => import('./pages/Pagamento'));
 const Metas = lazy(() => import('./pages/Metas'));
+const Xadrez = lazy(() => import('./pages/Xadrez'));
 
 const LoadingSpinner = () => (
   <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -37,6 +38,7 @@ function App() {
               
               <Route element={<PrivateRoute><Layout /></PrivateRoute>}>
                 <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/xadrez" element={<Xadrez />} />
                 <Route path="/incentivo" element={<Incentivo />} />
                 <Route path="/caixas" element={<Caixas />} />
                 <Route path="/pagamento" element={<Pagamento />} />

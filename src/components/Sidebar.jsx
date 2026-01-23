@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { useContext } from 'react';
+import { useContext, memo, useState } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { 
   LayoutDashboard, 
@@ -10,9 +10,9 @@ import {
   LogOut,
   User,
   X,
-  RefreshCw
+  RefreshCw,
+  Grid
 } from 'lucide-react';
-import React, { memo, useState } from 'react';
 import { useFilters } from '../context/FilterContext';
 
 const Sidebar = memo(({ isOpen, onClose }) => {
@@ -29,14 +29,12 @@ const Sidebar = memo(({ isOpen, onClose }) => {
   const handleRefresh = async () => {
     setIsRefreshing(true);
     await refreshApp();
-    // Pequeno delay visual para feedback
     setTimeout(() => {
         setIsRefreshing(false);
-        window.location.reload(); // Recarrega a página para garantir tudo novo
+        window.location.reload(); 
     }, 1000);
   };
 
-  // Função para definir a classe do link (ativo ou inativo)
   const linkClass = ({ isActive }) =>
     `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors font-medium ${
       isActive 
@@ -61,7 +59,7 @@ const Sidebar = memo(({ isOpen, onClose }) => {
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:translate-x-0 lg:sticky lg:top-0
       `}>
-        {/* Cabeçalho da Sidebar */}
+        {/* Cabeçalho */}
         <div className="flex items-center justify-between pb-6 border-b border-gray-100 mb-6">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-600">
@@ -73,7 +71,6 @@ const Sidebar = memo(({ isOpen, onClose }) => {
             </div>
           </div>
           
-          {/* Close Button (Mobile Only) */}
           <button 
             onClick={onClose} 
             className="lg:hidden p-1 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors"
@@ -85,9 +82,17 @@ const Sidebar = memo(({ isOpen, onClose }) => {
 
       {/* Navegação */}
       <nav className="flex-1 flex flex-col gap-2">
+        
+        {/* Dashboard Principal */}
         <NavLink to="/dashboard" className={linkClass}>
           <LayoutDashboard size={20} />
-          <span>Visão Geral (Xadrez)</span>
+          <span>Visão Geral</span>
+        </NavLink>
+
+        {/* 👇 2. NOVA ABA XADREZ ADICIONADA AQUI */}
+        <NavLink to="/xadrez" className={linkClass}>
+          <Grid size={20} />
+          <span>Xadrez</span>
         </NavLink>
 
         <NavLink to="/incentivo" className={linkClass}>
@@ -100,7 +105,7 @@ const Sidebar = memo(({ isOpen, onClose }) => {
           <span>Bónus Caixas</span>
         </NavLink>
 
-        {/* Apenas mostra o resumo de pagamento e metas se for Admin */}
+        {/* Admin Only */}
         {user?.role === 'admin' && (
           <>
             <NavLink to="/pagamento" className={linkClass}>
@@ -116,7 +121,7 @@ const Sidebar = memo(({ isOpen, onClose }) => {
         )}
       </nav>
 
-      {/* Rodapé da Sidebar */}
+      {/* Rodapé */}
       <div className="mt-auto pt-4 border-t border-gray-100 space-y-2">
         <button 
           onClick={handleRefresh} 
