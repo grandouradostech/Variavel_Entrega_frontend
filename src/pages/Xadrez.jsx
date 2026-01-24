@@ -13,18 +13,19 @@ const Xadrez = () => {
   const carregarXadrez = async () => {
     setLoading(true);
     try {
-      // AJUSTE: Chama a nova rota específica para o detalhado
       const response = await api.get(`/xadrez/detalhado`, {
         params: { date: dataFiltro }
       });
-      setViagens(response.data);
+      // Verifica se veio um erro ou array
+      if (response.data && !response.data.error) {
+        setViagens(response.data);
+      } else {
+        setViagens([]);
+        if(response.data.error) console.error(response.data.error);
+      }
     } catch (error) {
       console.error("Erro ao carregar dados do xadrez:", error);
-      // Dados de fallback para não quebrar a tela em caso de erro
-      setViagens([
-        { id: 1, mapa: '1050', motorista: 'João Silva (Mock)', ajudantes: ['Pedro', 'Carlos'], data: dataFiltro },
-        { id: 2, mapa: '1051', motorista: 'Marcos Oliveira (Mock)', ajudantes: ['André'], data: dataFiltro },
-      ]);
+      setViagens([]);
     } finally {
       setLoading(false);
     }
@@ -33,7 +34,7 @@ const Xadrez = () => {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Xadrez de Entregas</h1>
+        <h1 className="text-2xl font-bold text-gray-800">Xadrez de Entregas (Diário)</h1>
         
         <div className="flex items-center gap-2">
           <label className="text-gray-600 font-medium">Data do Mapa:</label>
@@ -48,52 +49,96 @@ const Xadrez = () => {
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead className="bg-gray-50 border-b border-gray-100">
+          <table className="w-full text-left text-sm whitespace-nowrap">
+            <thead className="bg-gray-50 border-b border-gray-100 text-gray-600 font-semibold">
               <tr>
-                <th className="px-6 py-4 text-sm font-semibold text-gray-600">Data</th>
-                <th className="px-6 py-4 text-sm font-semibold text-gray-600">Mapa</th>
-                <th className="px-6 py-4 text-sm font-semibold text-gray-600">Motorista</th>
-                <th className="px-6 py-4 text-sm font-semibold text-gray-600">Ajudantes</th>
+                {/* Cabeçalho exato conforme solicitado */}
+                <th className="px-4 py-3">DATA</th>
+                <th className="px-4 py-3">MAPA</th>
+                
+                <th className="px-4 py-3 border-l border-gray-200">COD (M1)</th>
+                <th className="px-4 py-3">MOTORISTA</th>
+                
+                <th className="px-4 py-3 border-l border-gray-200">COD (M2)</th>
+                <th className="px-4 py-3">MOTORISTA 2</th>
+                
+                <th className="px-4 py-3 border-l border-gray-200 bg-blue-50">COD (AJ1)</th>
+                <th className="px-4 py-3 bg-blue-50">AJUDANTE 1</th>
+                
+                <th className="px-4 py-3 border-l border-gray-200 bg-blue-50">COD (AJ2)</th>
+                <th className="px-4 py-3 bg-blue-50">AJUDANTE 2</th>
+                
+                <th className="px-4 py-3 border-l border-gray-200 bg-blue-50">COD (AJ3)</th>
+                <th className="px-4 py-3 bg-blue-50">AJUDANTE 3</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr>
-                  <td colSpan="4" className="px-6 py-8 text-center text-gray-500">
-                    Carregando mapas...
+                  <td colSpan="12" className="px-6 py-12 text-center text-gray-500">
+                    <div className="flex justify-center items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                      Carregando dados...
+                    </div>
                   </td>
                 </tr>
               ) : viagens.length === 0 ? (
                 <tr>
-                  <td colSpan="4" className="px-6 py-8 text-center text-gray-500">
-                    Nenhum mapa encontrado para esta data.
+                  <td colSpan="12" className="px-6 py-12 text-center text-gray-500">
+                    Nenhum registro encontrado para a data {new Date(dataFiltro).toLocaleDateString('pt-BR')}.
                   </td>
                 </tr>
               ) : (
                 viagens.map((item, index) => (
-                  <tr key={index} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {/* Tratamento para garantir que a data exiba corretamente independente do formato */}
-                      {item.data ? new Date(item.data + 'T12:00:00').toLocaleDateString('pt-BR') : dataFiltro}
+                  <tr key={item.id || index} className="hover:bg-gray-50 transition-colors">
+                    {/* DATA */}
+                    <td className="px-4 py-3 text-gray-600">
+                      {item.DATA ? new Date(item.DATA + 'T12:00:00').toLocaleDateString('pt-BR') : '-'}
                     </td>
-                    <td className="px-6 py-4 text-sm font-medium text-blue-600">
-                      #{item.mapa}
+                    
+                    {/* MAPA */}
+                    <td className="px-4 py-3 font-medium text-blue-600">
+                      {item.MAPA || '-'}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-800 font-medium">
-                      {item.motorista}
+
+                    {/* MOTORISTA 1 */}
+                    <td className="px-4 py-3 text-gray-500 border-l border-gray-100 font-mono text-xs">
+                      {item.COD || '-'}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      <div className="flex flex-wrap gap-1">
-                        {Array.isArray(item.ajudantes) 
-                          ? item.ajudantes.map((ajudante, i) => (
-                              <span key={i} className="bg-gray-100 px-2 py-1 rounded text-xs">
-                                {ajudante}
-                              </span>
-                            ))
-                          : item.ajudantes
-                        }
-                      </div>
+                    <td className="px-4 py-3 text-gray-800 font-medium">
+                      {item.MOTORISTA || '-'}
+                    </td>
+
+                    {/* MOTORISTA 2 */}
+                    <td className="px-4 py-3 text-gray-500 border-l border-gray-100 font-mono text-xs">
+                      {item.COD_2 || '-'}
+                    </td>
+                    <td className="px-4 py-3 text-gray-800">
+                      {item.MOTORISTA_2 || '-'}
+                    </td>
+
+                    {/* AJUDANTE 1 */}
+                    <td className="px-4 py-3 text-gray-500 bg-blue-50/20 border-l border-gray-100 font-mono text-xs">
+                      {item.CODJ_1 || '-'}
+                    </td>
+                    <td className="px-4 py-3 text-gray-700 bg-blue-50/20">
+                      {item.AJUDANTE_1 || '-'}
+                    </td>
+
+                    {/* AJUDANTE 2 */}
+                    <td className="px-4 py-3 text-gray-500 bg-blue-50/20 border-l border-gray-100 font-mono text-xs">
+                      {item.CODJ_2 || '-'}
+                    </td>
+                    <td className="px-4 py-3 text-gray-700 bg-blue-50/20">
+                      {item.AJUDANTE_2 || '-'}
+                    </td>
+
+                    {/* AJUDANTE 3 */}
+                    <td className="px-4 py-3 text-gray-500 bg-blue-50/20 border-l border-gray-100 font-mono text-xs">
+                      {item.CODJ_3 || '-'}
+                    </td>
+                    <td className="px-4 py-3 text-gray-700 bg-blue-50/20">
+                      {item.AJUDANTE_3 || '-'}
                     </td>
                   </tr>
                 ))
