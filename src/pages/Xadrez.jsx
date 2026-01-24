@@ -13,15 +13,17 @@ const Xadrez = () => {
   const carregarXadrez = async () => {
     setLoading(true);
     try {
-      const response = await api.get(`/xadrez`, {
+      // AJUSTE: Chama a nova rota específica para o detalhado
+      const response = await api.get(`/xadrez/detalhado`, {
         params: { date: dataFiltro }
       });
       setViagens(response.data);
     } catch (error) {
       console.error("Erro ao carregar dados do xadrez:", error);
+      // Dados de fallback para não quebrar a tela em caso de erro
       setViagens([
-        { id: 1, mapa: '1050', motorista: 'João Silva', ajudantes: ['Pedro', 'Carlos'], data: dataFiltro },
-        { id: 2, mapa: '1051', motorista: 'Marcos Oliveira', ajudantes: ['André'], data: dataFiltro },
+        { id: 1, mapa: '1050', motorista: 'João Silva (Mock)', ajudantes: ['Pedro', 'Carlos'], data: dataFiltro },
+        { id: 2, mapa: '1051', motorista: 'Marcos Oliveira (Mock)', ajudantes: ['André'], data: dataFiltro },
       ]);
     } finally {
       setLoading(false);
@@ -72,7 +74,8 @@ const Xadrez = () => {
                 viagens.map((item, index) => (
                   <tr key={index} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 text-sm text-gray-600">
-                      {new Date(item.data + 'T12:00:00').toLocaleDateString('pt-BR')}
+                      {/* Tratamento para garantir que a data exiba corretamente independente do formato */}
+                      {item.data ? new Date(item.data + 'T12:00:00').toLocaleDateString('pt-BR') : dataFiltro}
                     </td>
                     <td className="px-6 py-4 text-sm font-medium text-blue-600">
                       #{item.mapa}
