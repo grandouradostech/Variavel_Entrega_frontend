@@ -9,11 +9,9 @@ const Pagamento = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('motoristas');
-  const [search, setSearch] = useState(''); // Busca local
+  const [search, setSearch] = useState(''); 
 
-  // Carregar dados
   const fetchPagamento = async (force = false) => {
-    // Verifica Cache
     if (!force) {
         const cached = getCachedData('pagamento');
         if (cached) {
@@ -24,10 +22,14 @@ const Pagamento = () => {
 
     setLoading(true);
     setError('');
+    
+    // Captura as datas para garantir que o cache salve com os parâmetros usados
+    const currentParams = { start: filters.start, end: filters.end };
+
     try {
       const params = new URLSearchParams();
-      if (filters.start) params.append('data_inicio', filters.start);
-      if (filters.end) params.append('data_fim', filters.end);
+      if (currentParams.start) params.append('data_inicio', currentParams.start);
+      if (currentParams.end) params.append('data_fim', currentParams.end);
       
       const response = await api.get(`/pagamento?${params.toString()}`);
       
@@ -39,7 +41,9 @@ const Pagamento = () => {
             ajudantes: response.data.ajudantes || []
         };
         setData(result);
-        updateCache('pagamento', result);
+        
+        // 🚨 CORREÇÃO: Passando 'currentParams' para salvar no cache corretamente
+        updateCache('pagamento', result, currentParams);
       }
     } catch (err) {
       console.error(err);
@@ -76,7 +80,6 @@ const Pagamento = () => {
 
   const listaAtual = activeTab === 'motoristas' ? data.motoristas : data.ajudantes;
 
-  // Filtragem local
   const filteredList = listaAtual.filter(item => {
     if (!search) return true;
     const term = search.toLowerCase();
@@ -209,7 +212,6 @@ const Pagamento = () => {
                 <>
                     {filteredList.map((row, index) => (
                     <tr key={index} className="hover:bg-gray-50 transition-colors">
-                        {/* --- COLUNA COLABORADOR ATUALIZADA COM COD --- */}
                         <td className="py-3 px-4">
                             <div className="font-medium text-gray-800">{row.nome || `COD ${row.cod}`}</div>
                             <div className="flex gap-3 text-xs text-gray-500 mt-0.5">
@@ -280,7 +282,6 @@ const Pagamento = () => {
                 </div>
               ))}
               
-              {/* Card de Total Geral */}
               <div className="bg-gray-100 rounded-xl p-4 border border-gray-200 flex justify-between items-center sticky bottom-4 shadow-lg">
                   <span className="font-bold text-gray-700">TOTAL GERAL</span>
                   <span className="font-bold text-green-800 text-xl">{formatMoney(totalGeral)}</span>

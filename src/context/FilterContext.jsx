@@ -15,15 +15,16 @@ export const FilterProvider = ({ children }) => {
     end: currentDay
   });
 
-  // Cache para guardar os resultados das tabelas e evitar recarregamento
+  // Cache para guardar os resultados das tabelas
   const [cache, setCache] = useState({});
 
-  const updateCache = (key, data) => {
+  // CORREÇÃO: Agora aceita 'usedParams' para garantir que salvamos o cache com a data correta da requisição
+  const updateCache = (key, data, usedParams) => {
     setCache(prev => ({
       ...prev,
       [key]: { 
         data, 
-        params: { ...filters } // Guarda quais datas geraram esses dados
+        params: usedParams || { ...filters } // Usa os params passados ou fallback para o atual
       }
     }));
   };
@@ -41,11 +42,9 @@ export const FilterProvider = ({ children }) => {
 
   // Função para limpar cache local e remoto
   const refreshApp = async () => {
-    // 1. Limpa cache local
     setCache({});
     console.log("Cache Frontend limpo.");
 
-    // 2. Chama endpoint para limpar cache do backend
     try {
         await api.post('/refresh');
         console.log("Cache Backend limpo.");

@@ -1,25 +1,23 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { Calendar, Search, Package } from 'lucide-react';
-import { useFilters } from '../context/FilterContext'; // <--- IMPORTAR CONTEXTO
+import { useFilters } from '../context/FilterContext'; 
 
 const Caixas = () => {
-  const { filters, setFilters, updateCache, getCachedData } = useFilters(); // <--- USAR CONTEXTO
+  const { filters, setFilters, updateCache, getCachedData } = useFilters();
   const [activeTab, setActiveTab] = useState('motoristas');
   const [loading, setLoading] = useState(false);
   const [dados, setDados] = useState({ motoristas: [], ajudantes: [] });
   const [error, setError] = useState('');
   const [validationError, setValidationError] = useState('');
-  const [search, setSearch] = useState(''); // Estado para busca textual
+  const [search, setSearch] = useState(''); 
 
-  // Função para buscar dados da API
   const fetchDados = async (force = false) => {
     if (new Date(filters.start) > new Date(filters.end)) {
       setValidationError('A data de início não pode ser maior que a data de fim.');
       return;
     }
 
-    // Verifica Cache antes de buscar
     if (!force) {
         const cached = getCachedData('caixas');
         if (cached) {
@@ -32,15 +30,20 @@ const Caixas = () => {
     setLoading(true);
     setError('');
     
+    // Captura as datas atuais para garantir consistência
+    const currentParams = { start: filters.start, end: filters.end };
+
     try {
       const response = await api.get('/caixas', {
         params: { 
-          data_inicio: filters.start, 
-          data_fim: filters.end 
+          data_inicio: currentParams.start, 
+          data_fim: currentParams.end 
         }
       });
       setDados(response.data);
-      updateCache('caixas', response.data); // Salva no cache
+      
+      // 🚨 CORREÇÃO: Passamos 'currentParams' para salvar no cache com a data CERTA
+      updateCache('caixas', response.data, currentParams); 
     } catch (err) {
       setError('Erro ao carregar dados. Verifique se o Backend está a correr.');
       console.error(err);
@@ -49,11 +52,10 @@ const Caixas = () => {
     }
   };
 
-  // Carrega os dados ao abrir a página ou mudar filtros
   useEffect(() => {
     fetchDados();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters]); // Reage a mudanças no filtro global
+  }, [filters]); 
 
   const handleDateChange = (field, value) => {
       setFilters(prev => ({ ...prev, [field]: value }));
@@ -61,7 +63,6 @@ const Caixas = () => {
 
   const listaAtual = activeTab === 'motoristas' ? dados.motoristas : dados.ajudantes;
   
-  // Filtragem local
   const filteredList = listaAtual.filter(item => {
     if (!search) return true;
     const term = search.toLowerCase();
@@ -74,7 +75,6 @@ const Caixas = () => {
 
   return (
     <div className="space-y-6">
-      {/* Cabeçalho e Filtros */}
       <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col gap-4">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
@@ -121,7 +121,6 @@ const Caixas = () => {
           </div>
         </div>
 
-        {/* Barra de Pesquisa */}
         <div className="relative">
           <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
           <input
@@ -134,7 +133,6 @@ const Caixas = () => {
         </div>
       </div>
 
-      {/* --- SELEÇÃO DE TIPO (MOTORISTA / AJUDANTE) --- */}
       <div className="flex gap-2 bg-gray-100 p-1 rounded-lg w-fit shadow-inner">
         <button
             onClick={() => setActiveTab('motoristas')}
@@ -170,7 +168,6 @@ const Caixas = () => {
         </div>
       )}
 
-      {/* Tabela de Dados (Desktop) */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hidden md:block">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
@@ -226,7 +223,6 @@ const Caixas = () => {
         </div>
       </div>
 
-      {/* Card View (Mobile) */}
       <div className="md:hidden space-y-4">
          {loading ? (
            <div className="text-center text-gray-500 py-8">Carregando dados...</div>

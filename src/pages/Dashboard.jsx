@@ -8,7 +8,7 @@ const Dashboard = () => {
   const [dashboardData, setDashboardData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [validationError, setValidationError] = useState(''); // Validation error state
+  const [validationError, setValidationError] = useState('');
 
   // Estado local apenas para busca textual
   const [search, setSearch] = useState('');
@@ -22,7 +22,7 @@ const Dashboard = () => {
       return;
     }
 
-    setValidationError(''); // Clear validation error
+    setValidationError('');
     setLoading(true);
     setError('');
 
@@ -37,7 +37,6 @@ const Dashboard = () => {
     }
 
     try {
-      // Monta a query string
       const params = new URLSearchParams();
       if (dataInicio) params.append('data_inicio', dataInicio);
       if (dataFim) params.append('data_fim', dataFim);
@@ -45,16 +44,15 @@ const Dashboard = () => {
 
       const response = await api.get(`/xadrez/?${params.toString()}`);
       
-      // O backend retorna { dashboard: [...], ... }
       if (response.data.error) {
         setError(response.data.error);
       } else {
         const data = response.data.dashboard || [];
         setDashboardData(data);
         
-        // Atualiza cache se não houver busca
+        // Atualiza cache se não houver busca, PASSANDO OS FILTROS USADOS
         if (!search) {
-          updateCache('dashboard', data);
+          updateCache('dashboard', data, { start: dataInicio, end: dataFim });
         }
         
         // Atualiza datas se vierem do backend (apenas se vazias)
@@ -73,10 +71,11 @@ const Dashboard = () => {
     }
   };
 
+  // CORREÇÃO: Adicionado [filters] para recarregar automaticamente
   useEffect(() => {
     fetchXadrez();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Carrega apenas na montagem inicial (filtros aplicam no botão ou enter)
+  }, [filters]); 
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -147,7 +146,6 @@ const Dashboard = () => {
         </form>
       </div>
 
-      {/* Validation Error Message */}
       {validationError && (
         <div className="bg-yellow-50 text-yellow-700 p-4 rounded-lg border border-yellow-200">
           {validationError}
@@ -160,21 +158,19 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* Global Loading Indicator */}
       {loading && (
         <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
           <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
         </div>
       )}
 
-      {/* Success Message */}
       {!loading && dashboardData.length > 0 && (
         <div className="bg-green-50 text-green-700 p-4 rounded-lg border border-green-200">
           Dados carregados com sucesso!
         </div>
       )}
 
-      {/* Tabela de Resultados (Desktop) */}
+      {/* Tabela de Resultados */}
       <div className="bg-white rounded-xl shadow overflow-hidden border border-gray-100 hidden md:block">
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
@@ -203,7 +199,6 @@ const Dashboard = () => {
                     <td className="py-3 px-4 font-medium text-gray-800">{row.MOTORISTA}</td>
                     <td className="py-3 px-4 text-gray-600">{row.MOTORISTA_2 || '-'}</td>
                     
-                    {/* Ajudantes Fixos */}
                     <td className="py-3 px-4 text-blue-700 bg-blue-50/30 border-l border-gray-100">
                       {row.AJUDANTE_1 || '-'}
                     </td>
@@ -214,7 +209,6 @@ const Dashboard = () => {
                       {row.AJUDANTE_3 || '-'}
                     </td>
 
-                    {/* Visitantes (Lista) */}
                     <td className="py-3 px-4 text-gray-500 text-xs">
                       {row.VISITANTES && row.VISITANTES.length > 0 ? (
                         <div className="flex flex-wrap gap-1">
@@ -236,7 +230,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Card View (Mobile) */}
+      {/* Card View (Mobile) - Mantido igual */}
       <div className="md:hidden space-y-4">
         {loading ? (
           <div className="text-center text-gray-500 py-8">Carregando dados...</div>
