@@ -1,22 +1,34 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
+import { Calendar, Search } from 'lucide-react';
 
 const Xadrez = () => {
-  const [dataFiltro, setDataFiltro] = useState(new Date().toISOString().split('T')[0]); // Hoje
+  // Define datas iniciais (Mês atual)
+  const today = new Date();
+  const firstDay = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+  const currentDay = today.toISOString().split('T')[0];
+
+  const [dataInicio, setDataInicio] = useState(firstDay);
+  const [dataFim, setDataFim] = useState(currentDay);
+  const [busca, setBusca] = useState(''); // Estado para o filtro de texto
   const [viagens, setViagens] = useState([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     carregarXadrez();
-  }, [dataFiltro]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataInicio, dataFim]);
 
   const carregarXadrez = async () => {
     setLoading(true);
     try {
       const response = await api.get(`/xadrez/detalhado`, {
-        params: { date: dataFiltro }
+        params: { 
+            data_inicio: dataInicio,
+            data_fim: dataFim
+        }
       });
-      // Verifica se veio um erro ou array
+      
       if (response.data && !response.data.error) {
         setViagens(response.data);
       } else {
@@ -31,18 +43,74 @@ const Xadrez = () => {
     }
   };
 
+  // Lógica de Filtro Local (Nome do Motorista ou Ajudante)
+  const viagensFiltradas = viagens.filter((item) => {
+    if (!busca) return true;
+    const termo = busca.toLowerCase();
+    
+    // Verifica se o termo existe em qualquer um dos campos de nome
+    return (
+        (item.MOTORISTA && item.MOTORISTA.toLowerCase().includes(termo)) ||
+        (item.MOTORISTA_2 && item.MOTORISTA_2.toLowerCase().includes(termo)) ||
+        (item.AJUDANTE_1 && item.AJUDANTE_1.toLowerCase().includes(termo)) ||
+        (item.AJUDANTE_2 && item.AJUDANTE_2.toLowerCase().includes(termo)) ||
+        (item.AJUDANTE_3 && item.AJUDANTE_3.toLowerCase().includes(termo))
+    );
+  });
+
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Xadrez de Entregas (Diário)</h1>
-        
-        <div className="flex items-center gap-2">
-          <label className="text-gray-600 font-medium">Data do Mapa:</label>
-          <input 
-            type="date" 
-            className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={dataFiltro}
-            onChange={(e) => setDataFiltro(e.target.value)}
+    <div className="space-y-6">
+      {/* Cabeçalho e Filtros */}
+      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col gap-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800">Xadrez de Entregas</h1>
+            <p className="text-sm text-gray-500">Acompanhamento diário de mapas e equipes</p>
+          </div>
+
+          <div className="flex flex-wrap gap-2 items-end">
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Início</label>
+              <div className="relative">
+                <Calendar className="absolute left-2 top-2.5 text-gray-400" size={16} />
+                <input 
+                  type="date" 
+                  className="pl-8 pr-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                  value={dataInicio}
+                  onChange={(e) => setDataInicio(e.target.value)}
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Fim</label>
+              <div className="relative">
+                <Calendar className="absolute left-2 top-2.5 text-gray-400" size={16} />
+                <input 
+                  type="date" 
+                  className="pl-8 pr-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                  value={dataFim}
+                  onChange={(e) => setDataFim(e.target.value)}
+                />
+              </div>
+            </div>
+            <button 
+              onClick={() => carregarXadrez()}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium h-[38px]"
+            >
+              Filtrar
+            </button>
+          </div>
+        </div>
+
+        {/* Barra de Pesquisa por Texto */}
+        <div className="relative">
+          <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
+          <input
+            type="text"
+            placeholder="Buscar por Motorista ou Ajudante..."
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
           />
         </div>
       </div>
@@ -52,7 +120,6 @@ const Xadrez = () => {
           <table className="w-full text-left text-sm whitespace-nowrap">
             <thead className="bg-gray-50 border-b border-gray-100 text-gray-600 font-semibold">
               <tr>
-                {/* Cabeçalho exato conforme solicitado */}
                 <th className="px-4 py-3">DATA</th>
                 <th className="px-4 py-3">MAPA</th>
                 
@@ -82,22 +149,22 @@ const Xadrez = () => {
                     </div>
                   </td>
                 </tr>
-              ) : viagens.length === 0 ? (
+              ) : viagensFiltradas.length === 0 ? (
                 <tr>
                   <td colSpan="12" className="px-6 py-12 text-center text-gray-500">
-                    Nenhum registro encontrado para a data {new Date(dataFiltro).toLocaleDateString('pt-BR')}.
+                    Nenhum registro encontrado.
                   </td>
                 </tr>
               ) : (
-                viagens.map((item, index) => (
+                viagensFiltradas.map((item, index) => (
                   <tr key={item.id || index} className="hover:bg-gray-50 transition-colors">
                     {/* DATA */}
-                    <td className="px-4 py-3 text-gray-600">
+                    <td className="px-4 py-3 text-gray-600 font-medium">
                       {item.DATA ? new Date(item.DATA + 'T12:00:00').toLocaleDateString('pt-BR') : '-'}
                     </td>
                     
                     {/* MAPA */}
-                    <td className="px-4 py-3 font-medium text-blue-600">
+                    <td className="px-4 py-3 font-bold text-blue-600">
                       {item.MAPA || '-'}
                     </td>
 
