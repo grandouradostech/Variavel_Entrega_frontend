@@ -1,46 +1,50 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
-import { Calendar, Search, Filter, TrendingUp, AlertCircle, CheckCircle } from 'lucide-react';
+import { Calendar, Search, Filter, TrendingUp, AlertCircle } from 'lucide-react';
+import { useFilters } from '../context/FilterContext'; // Importando o Contexto Global
 
 const Incentivo = () => {
+  // Uso do Contexto para sincronizar datas e cache
+  const { filters, setFilters, updateCache, getCachedData } = useFilters();
+  
   const [data, setData] = useState({ motoristas: [], ajudantes: [] });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('motoristas');
-
-  // Filtros
-  const [dataInicio, setDataInicio] = useState('');
-  const [dataFim, setDataFim] = useState('');
   const [search, setSearch] = useState('');
 
-  const fetchIncentivo = async () => {
+  const fetchIncentivo = async (force = false) => {
+    // Verifica cache antes de buscar
+    if (!force) {
+        const cached = getCachedData('incentivo');
+        if (cached) {
+            setData(cached);
+            return;
+        }
+    }
+
     setLoading(true);
     setError('');
+    
+    // Captura parâmetros atuais para salvar no cache corretamente
+    const currentParams = { start: filters.start, end: filters.end };
+
     try {
       const params = new URLSearchParams();
-      if (dataInicio) params.append('data_inicio', dataInicio);
-      if (dataFim) params.append('data_fim', dataFim);
+      params.append('data_inicio', currentParams.start);
+      params.append('data_fim', currentParams.end);
       
-      // O endpoint espera formato ISO ou YYYY-MM-DD. O input type="date" já fornece YYYY-MM-DD
-      // Se não houver datas, o backend assume o mês atual
-      if (!dataInicio || !dataFim) {
-          // Opcional: definir datas padrão aqui se o backend exigir
-          const hoje = new Date();
-          const inicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().split('T')[0];
-          const fim = hoje.toISOString().split('T')[0];
-          params.append('data_inicio', inicio);
-          params.append('data_fim', fim);
-      }
-
       const response = await api.get(`/incentivo/?${params.toString()}`);
       
       if (response.data.error) {
         setError(response.data.error);
       } else {
-        setData({
+        const result = {
             motoristas: response.data.motoristas || [],
             ajudantes: response.data.ajudantes || []
-        });
+        };
+        setData(result);
+        updateCache('incentivo', result, currentParams);
       }
     } catch (err) {
       console.error(err);
@@ -50,22 +54,18 @@ const Incentivo = () => {
     }
   };
 
+  // Carrega automaticamente quando os filtros mudam
   useEffect(() => {
-    // Define datas iniciais padrão para os inputs
-    const hoje = new Date();
-    const inicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().split('T')[0];
-    const fim = hoje.toISOString().split('T')[0];
-    setDataInicio(inicio);
-    setDataFim(fim);
-  }, []);
-
-  // Dispara a busca quando as datas mudam (ou no clique do botão filtrar)
-  const handleFilter = (e) => {
-    e.preventDefault();
     fetchIncentivo();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters]);
+
+  // Atualiza os filtros globais
+  const handleDateChange = (field, value) => {
+      setFilters(prev => ({ ...prev, [field]: value }));
   };
 
-  // Filtra a lista localmente pelo nome/cpf
+  // Filtro local da lista
   const filterList = (list) => {
     if (!search) return list;
     const s = search.toLowerCase();
@@ -77,7 +77,6 @@ const Incentivo = () => {
   };
 
   const renderStatusIcon = (valStr) => {
-     // Lógica visual simples: se tiver valor é "analisado", se N/A é cinza
      if (valStr === 'N/A' || valStr === null) return <span className="text-gray-400">-</span>;
      return <span className="font-medium text-gray-800">{valStr}</span>;
   };
@@ -97,76 +96,78 @@ const Incentivo = () => {
   return (
     <div className="space-y-6">
       {/* Cabeçalho e Filtros */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-            <TrendingUp className="text-blue-600" />
-            Incentivo e KPIs
-          </h1>
-          <p className="text-gray-500 text-sm">Acompanhamento de devoluções, rating e refugo</p>
+      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col gap-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+              <TrendingUp className="text-blue-600" />
+              Incentivo e KPIs
+            </h1>
+            <p className="text-gray-500 text-sm">Acompanhamento de devoluções, rating e refugo</p>
+          </div>
+
+          <div className="flex flex-wrap gap-2 items-end">
+              <div>
+                  <label className="block text-xs text-gray-500 mb-1">Início</label>
+                  <div className="relative">
+                      <Calendar className="absolute left-2 top-2.5 text-gray-400" size={16}/>
+                      <input 
+                          type="date" 
+                          className="pl-8 pr-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                          value={filters.start}
+                          onChange={(e) => handleDateChange('start', e.target.value)}
+                      />
+                  </div>
+              </div>
+              <div>
+                  <label className="block text-xs text-gray-500 mb-1">Fim</label>
+                  <div className="relative">
+                      <Calendar className="absolute left-2 top-2.5 text-gray-400" size={16}/>
+                      <input 
+                          type="date" 
+                          className="pl-8 pr-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                          value={filters.end}
+                          onChange={(e) => handleDateChange('end', e.target.value)}
+                      />
+                  </div>
+              </div>
+              <button 
+                  onClick={() => fetchIncentivo(true)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg transition-colors h-[38px]"
+                  title="Atualizar Dados"
+              >
+                  <Filter size={20} />
+              </button>
+          </div>
         </div>
 
-        <form onSubmit={handleFilter} className="flex flex-wrap gap-2 items-end">
-            <div>
-                <label className="block text-xs text-gray-500 mb-1">Início</label>
-                <div className="relative">
-                    <Calendar className="absolute left-2 top-2.5 text-gray-400" size={16}/>
-                    <input 
-                        type="date" 
-                        className="pl-8 pr-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                        value={dataInicio}
-                        onChange={(e) => setDataInicio(e.target.value)}
-                    />
-                </div>
+        {/* Abas e Busca */}
+        <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            <div className="flex gap-2 bg-gray-100 p-1 rounded-lg w-full md:w-auto">
+                <button
+                    onClick={() => setActiveTab('motoristas')}
+                    className={`flex-1 md:flex-none px-6 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'motoristas' ? 'bg-white shadow text-blue-600' : 'text-gray-600 hover:text-gray-900'}`}
+                >
+                    Motoristas
+                </button>
+                <button
+                    onClick={() => setActiveTab('ajudantes')}
+                    className={`flex-1 md:flex-none px-6 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'ajudantes' ? 'bg-white shadow text-blue-600' : 'text-gray-600 hover:text-gray-900'}`}
+                >
+                    Ajudantes
+                </button>
             </div>
-            <div>
-                <label className="block text-xs text-gray-500 mb-1">Fim</label>
-                <div className="relative">
-                    <Calendar className="absolute left-2 top-2.5 text-gray-400" size={16}/>
-                    <input 
-                        type="date" 
-                        className="pl-8 pr-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                        value={dataFim}
-                        onChange={(e) => setDataFim(e.target.value)}
-                    />
-                </div>
+
+            <div className="relative w-full md:w-64">
+                <Search className="absolute left-3 top-2.5 text-gray-400" size={18}/>
+                <input 
+                    type="text" 
+                    placeholder="Buscar por nome..."
+                    className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                />
             </div>
-            <button 
-                type="submit"
-                className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg transition-colors h-[38px]"
-                title="Atualizar Dados"
-            >
-                <Filter size={20} />
-            </button>
-        </form>
-      </div>
-
-      {/* Abas e Busca */}
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-2 rounded-xl shadow-sm border border-gray-100">
-        <div className="flex gap-2 bg-gray-100 p-1 rounded-lg w-full md:w-auto">
-            <button
-                onClick={() => setActiveTab('motoristas')}
-                className={`flex-1 md:flex-none px-6 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'motoristas' ? 'bg-white shadow text-blue-600' : 'text-gray-600 hover:text-gray-900'}`}
-            >
-                Motoristas
-            </button>
-            <button
-                onClick={() => setActiveTab('ajudantes')}
-                className={`flex-1 md:flex-none px-6 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'ajudantes' ? 'bg-white shadow text-blue-600' : 'text-gray-600 hover:text-gray-900'}`}
-            >
-                Ajudantes
-            </button>
-        </div>
-
-        <div className="relative w-full md:w-64">
-            <Search className="absolute left-3 top-2.5 text-gray-400" size={18}/>
-            <input 
-                type="text" 
-                placeholder="Buscar por nome..."
-                className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-            />
         </div>
       </div>
 
@@ -201,7 +202,7 @@ const Incentivo = () => {
               {loading ? (
                 <tr><td colSpan="8" className="py-8 text-center text-gray-500">Calculando indicadores...</td></tr>
               ) : listaFiltrada.length === 0 ? (
-                <tr><td colSpan="8" className="py-8 text-center text-gray-500">Nenhum registro encontrado. Clique em filtrar para carregar.</td></tr>
+                <tr><td colSpan="8" className="py-8 text-center text-gray-500">Nenhum registro encontrado.</td></tr>
               ) : (
                 listaFiltrada.map((row, index) => (
                   <tr key={index} className="hover:bg-gray-50 transition-colors">
