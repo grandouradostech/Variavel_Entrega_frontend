@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { Calendar, Search, Filter, TrendingUp, AlertCircle } from 'lucide-react';
-import { useFilters } from '../context/FilterContext'; // Importando o Contexto Global
+import { useFilters } from '../context/FilterContext'; // <--- Importação do Contexto
 
 const Incentivo = () => {
-  // Uso do Contexto para sincronizar datas e cache
+  // Integração com o Contexto Global de Filtros
   const { filters, setFilters, updateCache, getCachedData } = useFilters();
   
   const [data, setData] = useState({ motoristas: [], ajudantes: [] });
@@ -13,20 +13,22 @@ const Incentivo = () => {
   const [activeTab, setActiveTab] = useState('motoristas');
   const [search, setSearch] = useState('');
 
+  // Função principal de busca de dados
   const fetchIncentivo = async (force = false) => {
-    // Verifica cache antes de buscar
+    setLoading(true);
+    setError('');
+
+    // 1. Verifica Cache (se não for forçado)
     if (!force) {
         const cached = getCachedData('incentivo');
         if (cached) {
             setData(cached);
+            setLoading(false);
             return;
         }
     }
 
-    setLoading(true);
-    setError('');
-    
-    // Captura parâmetros atuais para salvar no cache corretamente
+    // 2. Captura datas do Contexto Global
     const currentParams = { start: filters.start, end: filters.end };
 
     try {
@@ -44,6 +46,7 @@ const Incentivo = () => {
             ajudantes: response.data.ajudantes || []
         };
         setData(result);
+        // 3. Atualiza Cache
         updateCache('incentivo', result, currentParams);
       }
     } catch (err) {
@@ -54,18 +57,18 @@ const Incentivo = () => {
     }
   };
 
-  // Carrega automaticamente quando os filtros mudam
+  // Dispara a busca automaticamente quando os filtros mudam
   useEffect(() => {
     fetchIncentivo();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
 
-  // Atualiza os filtros globais
+  // Atualiza o Contexto Global ao mudar a data no input
   const handleDateChange = (field, value) => {
       setFilters(prev => ({ ...prev, [field]: value }));
   };
 
-  // Filtro local da lista
+  // Filtro local (Busca por texto)
   const filterList = (list) => {
     if (!search) return list;
     const s = search.toLowerCase();
@@ -76,6 +79,7 @@ const Incentivo = () => {
     );
   };
 
+  // Helpers de Renderização
   const renderStatusIcon = (valStr) => {
      if (valStr === 'N/A' || valStr === null) return <span className="text-gray-400">-</span>;
      return <span className="font-medium text-gray-800">{valStr}</span>;
@@ -133,16 +137,17 @@ const Incentivo = () => {
               </div>
               <button 
                   onClick={() => fetchIncentivo(true)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg transition-colors h-[38px]"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium h-[38px] flex items-center gap-2"
                   title="Atualizar Dados"
               >
-                  <Filter size={20} />
+                  <Filter size={18} />
+                  <span className="hidden md:inline">Filtrar</span>
               </button>
           </div>
         </div>
 
         {/* Abas e Busca */}
-        <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="flex flex-col md:flex-row justify-between items-center gap-4 border-t border-gray-100 pt-4">
             <div className="flex gap-2 bg-gray-100 p-1 rounded-lg w-full md:w-auto">
                 <button
                     onClick={() => setActiveTab('motoristas')}
@@ -163,7 +168,7 @@ const Incentivo = () => {
                 <input 
                     type="text" 
                     placeholder="Buscar por nome..."
-                    className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                 />
@@ -186,23 +191,23 @@ const Incentivo = () => {
               <tr>
                 <th className="py-3 px-4">Colaborador</th>
                 
-                <th className="py-3 px-4 text-center bg-blue-50/30 border-l">Dev. PDV</th>
+                <th className="py-3 px-4 text-center bg-blue-50/30 border-l border-gray-100">Dev. PDV</th>
                 <th className="py-3 px-4 text-right bg-blue-50/30 text-blue-700">Prêmio</th>
                 
-                <th className="py-3 px-4 text-center border-l">Rating</th>
+                <th className="py-3 px-4 text-center border-l border-gray-100">Rating</th>
                 <th className="py-3 px-4 text-right text-blue-700">Prêmio</th>
                 
-                <th className="py-3 px-4 text-center bg-blue-50/30 border-l">Refugo</th>
+                <th className="py-3 px-4 text-center bg-blue-50/30 border-l border-gray-100">Refugo</th>
                 <th className="py-3 px-4 text-right bg-blue-50/30 text-blue-700">Prêmio</th>
                 
-                <th className="py-3 px-4 text-right font-bold text-gray-800 border-l bg-gray-50">Total KPIs</th>
+                <th className="py-3 px-4 text-right font-bold text-gray-800 border-l border-gray-100 bg-gray-50">Total KPIs</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loading ? (
-                <tr><td colSpan="8" className="py-8 text-center text-gray-500">Calculando indicadores...</td></tr>
+                <tr><td colSpan="8" className="py-12 text-center text-gray-500">Calculando indicadores...</td></tr>
               ) : listaFiltrada.length === 0 ? (
-                <tr><td colSpan="8" className="py-8 text-center text-gray-500">Nenhum registro encontrado.</td></tr>
+                <tr><td colSpan="8" className="py-12 text-center text-gray-500">Nenhum registro encontrado. Clique em filtrar para carregar.</td></tr>
               ) : (
                 listaFiltrada.map((row, index) => (
                   <tr key={index} className="hover:bg-gray-50 transition-colors">
@@ -236,7 +241,7 @@ const Incentivo = () => {
                     </td>
 
                     {/* Total */}
-                    <td className="py-3 px-4 text-right font-bold text-blue-800 border-l border-gray-100 bg-gray-50">
+                    <td className="py-3 px-4 text-right font-bold text-green-700 border-l border-gray-100 bg-gray-50">
                         {renderPremio(row.total_premio)}
                     </td>
                   </tr>
@@ -263,7 +268,9 @@ const Incentivo = () => {
                  </div>
                  <div className="text-right">
                     <span className="text-xs text-gray-500 uppercase block">Total KPIs</span>
-                    {renderPremio(row.total_premio)}
+                    <span className="font-bold text-green-700 text-lg">
+                        {renderPremio(row.total_premio)}
+                    </span>
                  </div>
                </div>
 
@@ -272,7 +279,7 @@ const Incentivo = () => {
                   <div className="flex justify-between items-center text-sm">
                      <span className="text-gray-600">Dev. PDV</span>
                      <div className="flex items-center gap-3">
-                        <span className="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-600">{row.dev_pdv_val || '-'}</span>
+                        <span className="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-600 border border-gray-200">{row.dev_pdv_val || '-'}</span>
                         {renderPremio(row.dev_pdv_premio_val)}
                      </div>
                   </div>
@@ -281,7 +288,7 @@ const Incentivo = () => {
                   <div className="flex justify-between items-center text-sm">
                      <span className="text-gray-600">Rating</span>
                      <div className="flex items-center gap-3">
-                        <span className="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-600">{row.rating_val || '-'}</span>
+                        <span className="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-600 border border-gray-200">{row.rating_val || '-'}</span>
                         {renderPremio(row.rating_premio_val)}
                      </div>
                   </div>
@@ -290,7 +297,7 @@ const Incentivo = () => {
                   <div className="flex justify-between items-center text-sm">
                      <span className="text-gray-600">Refugo</span>
                      <div className="flex items-center gap-3">
-                        <span className="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-600">{row.refugo_val || '-'}</span>
+                        <span className="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-600 border border-gray-200">{row.refugo_val || '-'}</span>
                         {renderPremio(row.refugo_premio_val)}
                      </div>
                   </div>
